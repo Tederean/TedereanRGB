@@ -33,23 +33,9 @@ namespace Tederean.RGB
         m_IsShutdown = true;
       };
 
-      await Setup();
-    }
-
-    private static async Task Setup()
-    {
-      var serverProcess = "/usr/bin/openrgb --server".RunInShell();
-
       await Task.Delay(4000);
 
-      try
-      {
-        await RgbClientLoop();
-      }
-      finally
-      {
-        serverProcess.Kill();
-      }
+      await RgbClientLoop();
     }
 
     private static async Task RgbClientLoop()
@@ -90,9 +76,5 @@ namespace Tederean.RGB
         }
       }
     }
-
-
-    // var output = JsonConvert.SerializeObject(devices, Formatting.Indented);
-    // File.WriteAllText(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "rgb.json"), output);
   }
 }
