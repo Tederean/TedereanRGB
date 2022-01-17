@@ -13,7 +13,7 @@ namespace Tederean.RGB.DeviceHandler
       var rgbDevices = client.GetAllControllerData().Select((device, deviceId) => new { Object = device, Id = deviceId }).ToList();
       var deviceHandlers = new List<IRgbDeviceHandler>();
 
-      deviceHandlers.AddRange(rgbDevices.Where(device => device.Object.Name == "ASUS Aura DRAM").Select(device =>
+      deviceHandlers.AddRange(rgbDevices.Where(device => device.Object.Name == "ENE DRAM").Select(device =>
       {
         return new AuraRamDeviceHandler(client, device.Object, device.Id);
       }));

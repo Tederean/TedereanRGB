@@ -8,7 +8,7 @@ namespace Tederean.RGB.DeviceHandler
   public class MsiRtx3070DeviceHandler : IRgbDeviceHandler
   {
 
-    private const string ModeStatic = "Static";
+    private const string ModeDirect = "Direct";
 
     private const string ModeRainbow = "Rainbow";
 
@@ -21,7 +21,7 @@ namespace Tederean.RGB.DeviceHandler
 
     private readonly int m_LedsCount;
 
-    private readonly int m_StaticModeId;
+    private readonly int m_DirectModeId;
 
     private readonly int m_RainbowModeId;
 
@@ -33,20 +33,20 @@ namespace Tederean.RGB.DeviceHandler
       m_LedsCount = device.Leds.Length;
 
       var modes = device.Modes.Select((mode, modeId) => new { Object = mode, Id = modeId }).ToList();
-
-      m_StaticModeId = modes.First(mode => mode.Object.Name == ModeStatic).Id;
+            
+      m_DirectModeId = modes.First(mode => mode.Object.Name == ModeDirect).Id;
       m_RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
     }
 
 
     public void Initialize()
     {
-      m_Client.SetMode(m_DeviceId, m_StaticModeId);
+      m_Client.SetMode(m_DeviceId, m_DirectModeId);
     }
 
     public void SetColor(Color color)
     {
-      (double hue, double saturation, double value) = color.ToHsv();
+      (var hue, var saturation, var value) = color.ToHsv();
       color = Color.FromHsv(hue, saturation, value * DimmingFactor);
 
       var nextColors = Enumerable.Range(0, m_LedsCount).Select(e => color).ToArray();
