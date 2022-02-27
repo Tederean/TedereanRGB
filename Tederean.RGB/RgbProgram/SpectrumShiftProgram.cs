@@ -1,4 +1,5 @@
-﻿using OpenRGB.NET.Models;
+﻿using CoordinateSharp;
+using OpenRGB.NET.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,13 +16,20 @@ namespace Tederean.RGB.RgbProgram
 
     private const int FramesPerSecond = 24;
 
+    private const double Latitude = 51.79;
+
+    private const double Logitude = 6.17;
+
     private readonly int DelayTime_ms;
 
     private readonly int ColorCount;
 
     private readonly Color[] RainbowColors;
 
-    private int m_ColorIndex;
+
+    private Color? m_LastLedColor;
+
+    private int m_RainbowColorIndex;
 
 
     public SpectrumShiftProgram()
@@ -39,14 +47,17 @@ namespace Tederean.RGB.RgbProgram
       {
         await using (new FixedTime(TimeSpan.FromMilliseconds(DelayTime_ms)))
         {
-          var lastColor = LastColor();
-          var nextColor = NextColor();
+          var nextRainbowColor = NextRainbowColor();
+          var nextLedColor = ApplyBrightnessCorrection(nextRainbowColor);
 
-          if (lastColor != nextColor)
+
+          if (nextLedColor != m_LastLedColor)
           {
+            m_LastLedColor = nextLedColor;
+
             deviceHandlers.ForEach(deviceHandler =>
             {
-              deviceHandler.SetColor(nextColor);
+              deviceHandler.SetColor(nextLedColor);
             });
           }
         }
@@ -54,25 +65,42 @@ namespace Tederean.RGB.RgbProgram
     }
 
 
-    private Color LastColor()
-    {
-      var index = Math.Max(0, m_ColorIndex - 1);
 
-      return RainbowColors[index];
+    private Color ApplyBrightnessCorrection(Color color)
+    {
+      var sunAltitude = Celestial.CalculateCelestialTimes(Latitude, Logitude, DateTime.UtcNow).SunAltitude;
+      var brightnessRatio = SunAltitudeToBrightnessRatio(sunAltitude);
+
+      (var hue, var saturation, var value) = color.ToHsv();
+
+      value *= brightnessRatio;
+
+      return Color.FromHsv(hue, saturation, value);
     }
 
-    private Color NextColor()
+    private Color NextRainbowColor()
     {
-      if (m_ColorIndex >= RainbowColors.Length)
+      if (m_RainbowColorIndex >= RainbowColors.Length)
       {
-        m_ColorIndex = 0;
+        m_RainbowColorIndex = 0;
       }
 
-      var returnColor = RainbowColors[m_ColorIndex];
+      var returnColor = RainbowColors[m_RainbowColorIndex];
 
-      m_ColorIndex++;
+      m_RainbowColorIndex++;
 
       return returnColor;
+    }
+
+    private double SunAltitudeToBrightnessRatio(double sunAltitude)
+    {
+      if (sunAltitude >= 0.0)
+        return 1.0;
+
+      if (sunAltitude <= -6.0)
+        return 0.2;
+
+      return (2.0 / 15.0) * sunAltitude + 1.0;
     }
   }
 }

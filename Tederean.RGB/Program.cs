@@ -14,7 +14,7 @@ namespace Tederean.RGB
     private static bool m_IsShutdown;
 
 
-    public static async Task Main(string[] args)
+    public static async Task Main()
     {
 #if DEBUG
       if (!Debugger.IsAttached)
@@ -27,17 +27,24 @@ namespace Tederean.RGB
         Debugger.Break();
       }
 #endif
-
+      
       AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
       {
         m_IsShutdown = true;
       };
-
-      await Task.Delay(4000);
+		
+      if (OperatingSystem.IsWindows())
+      {
+        await Task.Delay(8000);
+      }
+      else
+      {
+        await Task.Delay(4000);
+      }
 
       await RgbClientLoop();
     }
-
+		
     private static async Task RgbClientLoop()
     {
       while (!m_IsShutdown)

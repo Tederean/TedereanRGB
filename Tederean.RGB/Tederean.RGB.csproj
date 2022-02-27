@@ -4,10 +4,20 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
     <StartupObject>Tederean.RGB.Program</StartupObject>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove=".editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CoordinateSharp" Version="2.12.1.1" />
     <PackageReference Include="OpenRGB.NET" Version="1.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\shitl\source\repos\TedereanRGB\Tederean.RGB\.editorconfig" />
   </ItemGroup>
 
 </Project>
