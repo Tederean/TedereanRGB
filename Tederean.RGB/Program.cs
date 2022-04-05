@@ -1,18 +1,13 @@
-﻿using OpenRGB.NET;
-using System;
+﻿using System;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
-using Tederean.RGB.DeviceHandler;
-using Tederean.RGB.RgbProgram;
 
 namespace Tederean.RGB
 {
 
   public static class Program
   {
-
-    private static bool m_IsShutdown;
-
 
     public static async Task Main()
     {
@@ -27,61 +22,26 @@ namespace Tederean.RGB
         Debugger.Break();
       }
 #endif
-      
+
+
+      var cancellationTokenSource = new CancellationTokenSource();
+
       AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
       {
-        m_IsShutdown = true;
+        cancellationTokenSource.Cancel();
       };
-		
-      if (OperatingSystem.IsWindows())
-      {
-        await Task.Delay(8000);
-      }
-      else
-      {
-        await Task.Delay(4000);
-      }
 
-      await RgbClientLoop();
-    }
-		
-    private static async Task RgbClientLoop()
-    {
-      while (!m_IsShutdown)
+
+      try
       {
-        try
+        if (OperatingSystem.IsWindows())
         {
-          using (var client = new OpenRGBClient())
-          {
-            var deviceHandlers = RgbDeviceHandler.GetDeviceHandlers(client);
-
-            deviceHandlers.ForEach(deviceHandler => deviceHandler.Initialize());
-
-            try
-            {
-              var rgbProgram = new SpectrumShiftProgram();
-
-              await rgbProgram.Run(() => m_IsShutdown, deviceHandlers);
-            }
-            finally
-            {
-              if (m_IsShutdown)
-              {
-                deviceHandlers.ForEach(deviceHandler => deviceHandler.Shutdown());
-              }
-            }
-          }
+          WindowUtil.SetWindowVisibility(isVisible: false);
         }
-        catch (Exception exception)
-        {
-          Console.Error.WriteLine(exception.ToString());
 
-          if (!m_IsShutdown)
-          {
-            await Task.Delay(1000);
-          }
-        }
+        await LoopRoutine.RunAsync(cancellationTokenSource.Token);
       }
+      catch (Exception) when (cancellationTokenSource.IsCancellationRequested) { }
     }
   }
 }

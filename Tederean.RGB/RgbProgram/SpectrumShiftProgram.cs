@@ -3,6 +3,7 @@ using OpenRGB.NET.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Tederean.RGB.DeviceHandler;
 
@@ -41,9 +42,9 @@ namespace Tederean.RGB.RgbProgram
     }
 
 
-    public async Task Run(Func<bool> isShutdown, List<IRgbDeviceHandler> deviceHandlers)
+    public async Task RunAsync(CancellationToken cancellationToken, List<IRgbDeviceHandler> deviceHandlers)
     {
-      while (!isShutdown())
+      while (!cancellationToken.IsCancellationRequested)
       {
         await using (new FixedTime(TimeSpan.FromMilliseconds(DelayTime_ms)))
         {
