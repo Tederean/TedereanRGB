@@ -15,53 +15,53 @@ namespace Tederean.RGB.DeviceHandler
     private const string ZoneHeader = "Aura Addressable 1";
 
 
-    private readonly OpenRGBClient m_Client;
+    private readonly OpenRGBClient _Client;
 
-    private readonly int m_DeviceId;
+    private readonly int _DeviceId;
 
-    private readonly int m_ZoneId;
+    private readonly int _ZoneId;
 
-    private readonly int m_LedsCount;
+    private readonly int _LedsCount;
 
-    private readonly int m_DirectModeId;
+    private readonly int _DirectModeId;
 
-    private readonly int m_RainbowModeId;
+    private readonly int _RainbowModeId;
 
 
     public AsusB550IDeviceHandler(OpenRGBClient client, Device device, int deviceId)
     {
-      m_Client = client;
-      m_DeviceId = deviceId;
+      _Client = client;
+      _DeviceId = deviceId;
 
       var modes = device.Modes.Select((mode, modeId) => new { Object = mode, Id = modeId }).ToList();
 
-      m_DirectModeId = modes.First(mode => mode.Object.Name == ModeDirect).Id;
-      m_RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
+      _DirectModeId = modes.First(mode => mode.Object.Name == ModeDirect).Id;
+      _RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
 
 
       var zones = device.Zones.Select((zone, zoneId) => new { Object = zone, Id = zoneId }).ToList();
       var zone = zones.First(zone => zone.Object.Name == ZoneHeader);
 
-      m_LedsCount = (int)zone.Object.LedCount;
-      m_ZoneId = zone.Id;
+      _LedsCount = (int)zone.Object.LedCount;
+      _ZoneId = zone.Id;
     }
 
 
     public void Initialize()
     {
-      m_Client.SetMode(m_DeviceId, m_DirectModeId);
+      _Client.SetMode(_DeviceId, _DirectModeId);
     }
 
     public void SetColor(Color color)
     {
-      var nextColors = Enumerable.Range(0, m_LedsCount).Select(e => color).ToArray();
+      var nextColors = Enumerable.Range(0, _LedsCount).Select(e => color).ToArray();
 
-      m_Client.UpdateZone(m_DeviceId, m_ZoneId, nextColors);
+      _Client.UpdateZone(_DeviceId, _ZoneId, nextColors);
     }
 
     public void Shutdown()
     {
-      m_Client.SetMode(m_DeviceId, m_RainbowModeId);
+      _Client.SetMode(_DeviceId, _RainbowModeId);
     }
   }
 }

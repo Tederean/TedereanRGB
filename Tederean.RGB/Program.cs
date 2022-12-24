@@ -11,37 +11,63 @@ namespace Tederean.RGB
 
     public static async Task Main()
     {
-#if DEBUG
-      if (!Debugger.IsAttached)
+      try
       {
-        while (!Debugger.IsAttached)
+#if DEBUG
+        if (!Debugger.IsAttached)
         {
-          await Task.Delay(100);
-        }
+          while (!Debugger.IsAttached)
+          {
+            await Task.Delay(100);
+          }
 
-        Debugger.Break();
-      }
+          Debugger.Break();
+        }
 #endif
 
 
-      var cancellationTokenSource = new CancellationTokenSource();
+        using (var cancellationTokenSource = new CancellationTokenSource())
+        {
+          void OnProcessExitInternal(object? sender, EventArgs args)
+          {
+            cancellationTokenSource.Cancel();
+          }
 
-      AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
-      {
-        cancellationTokenSource.Cancel();
-      };
+          void OnCancelKeyPressInternal(object? sender, ConsoleCancelEventArgs e)
+          {
+            cancellationTokenSource.Cancel();
+          }
 
 
-      try
+          AppDomain.CurrentDomain.ProcessExit += OnProcessExitInternal;
+          Console.CancelKeyPress += OnCancelKeyPressInternal;
+
+          try
+          {
+            if (OperatingSystem.IsWindows())
+            {
+              WindowUtil.SetWindowVisibility(isVisible: false);
+            }
+
+            await LoopRoutine.RunAsync(cancellationTokenSource.Token);
+          }
+          finally
+          {
+            AppDomain.CurrentDomain.ProcessExit -= OnProcessExitInternal;
+            Console.CancelKeyPress -= OnCancelKeyPressInternal;
+          }
+        }
+      }
+      catch (Exception ex)
       {
         if (OperatingSystem.IsWindows())
         {
-          WindowUtil.SetWindowVisibility(isVisible: false);
+          WindowUtil.SetWindowVisibility(isVisible: true);
         }
 
-        await LoopRoutine.RunAsync(cancellationTokenSource.Token);
+        Console.WriteLine(ex.ToString());
+        Console.ReadKey();
       }
-      catch (Exception) when (cancellationTokenSource.IsCancellationRequested) { }
     }
   }
 }

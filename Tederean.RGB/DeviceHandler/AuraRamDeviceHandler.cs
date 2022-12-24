@@ -13,45 +13,45 @@ namespace Tederean.RGB.DeviceHandler
     private const string ModeRainbow = "Rainbow";
 
 
-    private readonly OpenRGBClient m_Client;
+    private readonly OpenRGBClient _Client;
 
-    private readonly int m_DeviceId;
+    private readonly int _DeviceId;
 
-    private readonly int m_LedsCount;
+    private readonly int _LedsCount;
 
-    private readonly int m_StaticModeId;
+    private readonly int _StaticModeId;
 
-    private readonly int m_RainbowModeId;
+    private readonly int _RainbowModeId;
 
 
     public AuraRamDeviceHandler(OpenRGBClient client, Device device, int deviceId)
     {
-      m_Client = client;
-      m_DeviceId = deviceId;
-      m_LedsCount = device.Leds.Length;
+      _Client = client;
+      _DeviceId = deviceId;
+      _LedsCount = device.Leds.Length;
 
       var modes = device.Modes.Select((mode, modeId) => new { Object = mode, Id = modeId }).ToList();
 
-      m_StaticModeId = modes.First(mode => mode.Object.Name == ModeStatic).Id;
-      m_RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
+      _StaticModeId = modes.First(mode => mode.Object.Name == ModeStatic).Id;
+      _RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
     }
 
 
     public void Initialize()
     {
-      m_Client.SetMode(m_DeviceId, m_StaticModeId);
+      _Client.SetMode(_DeviceId, _StaticModeId);
     }
 
     public void SetColor(Color color)
     {
-      var nextColors = Enumerable.Range(0, m_LedsCount).Select(e => color).ToArray();
+      var nextColors = Enumerable.Range(0, _LedsCount).Select(e => color).ToArray();
 
-      m_Client.UpdateLeds(m_DeviceId, nextColors);
+      _Client.UpdateLeds(_DeviceId, nextColors);
     }
 
     public void Shutdown()
     {
-      m_Client.SetMode(m_DeviceId, m_RainbowModeId);
+      _Client.SetMode(_DeviceId, _RainbowModeId);
     }
   }
 }
