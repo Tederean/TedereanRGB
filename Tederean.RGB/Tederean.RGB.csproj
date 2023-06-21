@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="CoordinateSharp" Version="2.18.1.1" />
-    <PackageReference Include="OpenRGB.NET" Version="2.1.0" />
+    <PackageReference Include="OpenRGB.NET" Version="2.2.0" />
   </ItemGroup>
 
 </Project>
