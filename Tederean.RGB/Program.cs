@@ -1,7 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32;
+using OpenRGB.NET;
+using Tederean.RGB.DeviceHandler;
+using Tederean.RGB.RgbProgram;
 
 namespace Tederean.RGB
 {
@@ -9,64 +15,129 @@ namespace Tederean.RGB
   public static class Program
   {
 
-    public static async Task Main()
+    private const string OpenRgbPath = "C:\\Tederean\\Programme\\OpenRGB";
+
+    private const int OpenRgbPort = 6742;
+
+
+    public static async Task RunAsync(CancellationTokenSource cancellationTokenSourceApp)
     {
-      try
+      var powerMode = PowerModes.Resume;
+
+      while (!cancellationTokenSourceApp.IsCancellationRequested)
       {
-#if DEBUG
-        if (!Debugger.IsAttached)
+        using (var cancellationTokenSourceSuspend = new CancellationTokenSource())
         {
-          while (!Debugger.IsAttached)
+          void OnPowerModeChangedInternal(object sender, PowerModeChangedEventArgs args)
           {
-            await Task.Delay(100);
+            if (args.Mode == PowerModes.StatusChange)
+              return;
+
+            powerMode = args.Mode;
+            cancellationTokenSourceSuspend.Cancel();
           }
 
-          Debugger.Break();
-        }
-#endif
-
-
-        using (var cancellationTokenSource = new CancellationTokenSource())
-        {
-          void OnProcessExitInternal(object? sender, EventArgs args)
-          {
-            cancellationTokenSource.Cancel();
-          }
-
-          void OnCancelKeyPressInternal(object? sender, ConsoleCancelEventArgs e)
-          {
-            cancellationTokenSource.Cancel();
-          }
-
-
-          AppDomain.CurrentDomain.ProcessExit += OnProcessExitInternal;
-          Console.CancelKeyPress += OnCancelKeyPressInternal;
+          SystemEvents.PowerModeChanged += OnPowerModeChangedInternal;
 
           try
           {
-            if (OperatingSystem.IsWindows())
+            using (var cancellationTokenSourceLinked = CancellationTokenSource.CreateLinkedTokenSource(cancellationTokenSourceApp.Token, cancellationTokenSourceSuspend.Token))
             {
-              WindowUtil.SetWindowVisibility(isVisible: false);
-            }
+              if (powerMode == PowerModes.Resume)
+              {
+                await RunOpenRgbAsync(cancellationTokenSourceLinked);
+              }
 
-            await LoopRoutine.RunAsync(cancellationTokenSource.Token);
+              else if (powerMode == PowerModes.Suspend)
+              {
+                try
+                {
+                  await cancellationTokenSourceLinked.Token;
+                }
+                catch (OperationCanceledException) { }
+              }
+            }
           }
           finally
           {
-            AppDomain.CurrentDomain.ProcessExit -= OnProcessExitInternal;
-            Console.CancelKeyPress -= OnCancelKeyPressInternal;
+            SystemEvents.PowerModeChanged -= OnPowerModeChangedInternal;
           }
         }
       }
-      catch (Exception ex)
-      {
-        if (OperatingSystem.IsWindows())
-        {
-          WindowUtil.SetWindowVisibility(isVisible: true);
-        }
+    }
 
-        Console.WriteLine(ex.ToString());
-        Console.ReadKey();
+    private static async Task RunOpenRgbAsync(CancellationTokenSource cancellationTokenSource)
+    {
+      var processStartInfo = new ProcessStartInfo()
+      {
+        WorkingDirectory = OpenRgbPath,
+        FileName = $"{OpenRgbPath}\\OpenRGB.exe",
+        Arguments = $"--noautoconnect --server --server-port {OpenRgbPort} --localconfig",
+        UseShellExecute = true,
+        CreateNoWindow = false,
+        WindowStyle = ProcessWindowStyle.Normal,
+      };
+
+
+      using (var openRGBServer = Process.Start(processStartInfo))
+      {
+        if (openRGBServer != null)
+        {
+          try
+          {
+            await OpenRgbServerAvailableAsync(cancellationTokenSource.Token, OpenRgbPort);
+
+
+            if (!cancellationTokenSource.IsCancellationRequested)
+            {
+              await Task.Run(async () =>
+              {
+                using (var client = new OpenRgbClient(port: OpenRgbPort))
+                {
+                  var deviceHandlers = RgbDeviceHandler.GetDeviceHandlers(client).ToList();
+
+                  deviceHandlers.ForEach(deviceHandler => deviceHandler.ApplyMode());
+
+                  var rgbProgram = new SpectrumShiftProgram();
+
+                  await rgbProgram.RunAsync(cancellationTokenSource.Token, deviceHandlers);
+                }
+              });
+            }
+          }
+          finally
+          {
+            openRGBServer.Kill();
+            await openRGBServer.WaitForExitAsync();
+          }
+        }
+      }
+    }
+
+    private static async Task OpenRgbServerAvailableAsync(CancellationToken token, int port)
+    {
+      while (!token.IsCancellationRequested)
+      {
+        var tcpEndPoints = IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners();
+        var serverAvailable = tcpEndPoints.Any(tcpEndPoint => tcpEndPoint.Port == port);
+
+        try
+        {
+          await Task.Delay(500, token);
+        }
+        catch (TaskCanceledException) { }
+
+
+        if (serverAvailable)
+        {
+          try
+          {
+            await Task.Delay(5000, token); // OpenRGB needs additional time even then TCP API is already available.
+          }
+          catch (TaskCanceledException) { }
+
+          return;
+        }
       }
     }
   }

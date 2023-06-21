@@ -5,12 +5,12 @@ using System.Linq;
 namespace Tederean.RGB.DeviceHandler
 {
 
-  public class MsiRtx3070DeviceHandler : IRgbDeviceHandler
+  public class SteelSeriesRival3 : IRgbDeviceHandler
   {
 
     private const string ModeDirect = "Direct";
 
-    private const double DimmingFactor = 0.5;
+    private const double DimmingFactor = 0.1;
 
 
     private readonly OpenRgbClient _Client;
@@ -19,22 +19,22 @@ namespace Tederean.RGB.DeviceHandler
 
     private readonly int _LedsCount;
 
-    private readonly int _DirectModeId;
+    private readonly int _StaticModeId;
 
 
-    public MsiRtx3070DeviceHandler(OpenRgbClient client, Device device)
+    public SteelSeriesRival3(OpenRgbClient client, Device device)
     {
       _Client = client;
       _DeviceId = device.Index;
-
       _LedsCount = device.Leds.Length;
-      _DirectModeId = device.Modes.First(mode => mode.Name == ModeDirect).Index;
+
+      _StaticModeId = device.Modes.First(mode => mode.Name == ModeDirect).Index;
     }
 
 
     public void ApplyMode()
     {
-      _Client.SaveMode(_DeviceId, _DirectModeId);
+      _Client.SaveMode(_DeviceId, _StaticModeId);
     }
 
     public void SetColor(Color color)

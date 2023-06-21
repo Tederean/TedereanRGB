@@ -1,5 +1,5 @@
 ﻿using OpenRGB.NET;
-using OpenRGB.NET.Models;
+using System;
 using System.Linq;
 
 namespace Tederean.RGB.DeviceHandler
@@ -8,50 +8,70 @@ namespace Tederean.RGB.DeviceHandler
   public class AuraRamDeviceHandler : IRgbDeviceHandler
   {
 
-    private const string ModeStatic = "Static";
+    //private const string ModeStatic = "Static";
 
-    private const string ModeRainbow = "Rainbow";
+    //private const string ModeRainbow = "Rainbow";
+
+    private const string ModeDirect = "Direct";
 
 
-    private readonly OpenRGBClient _Client;
+    private readonly OpenRgbClient _Client;
 
     private readonly int _DeviceId;
 
     private readonly int _LedsCount;
 
-    private readonly int _StaticModeId;
+    //private readonly int _StaticModeId;
 
-    private readonly int _RainbowModeId;
+    //private readonly int _RainbowModeId;
+
+    private readonly int _DirectModeId;
 
 
-    public AuraRamDeviceHandler(OpenRGBClient client, Device device, int deviceId)
+    private DateTime _LastModeCheck_Utc;
+
+
+    public AuraRamDeviceHandler(OpenRgbClient client, Device device)
     {
       _Client = client;
-      _DeviceId = deviceId;
+      _DeviceId = device.Index;
       _LedsCount = device.Leds.Length;
 
-      var modes = device.Modes.Select((mode, modeId) => new { Object = mode, Id = modeId }).ToList();
-
-      _StaticModeId = modes.First(mode => mode.Object.Name == ModeStatic).Id;
-      _RainbowModeId = modes.First(mode => mode.Object.Name == ModeRainbow).Id;
+      //_StaticModeId = device.Modes.First(mode => mode.Name == ModeStatic).Index;
+      //_RainbowModeId = device.Modes.First(mode => mode.Name == ModeRainbow).Index;
+      _DirectModeId = device.Modes.First(mode => mode.Name == ModeDirect).Index;
     }
 
 
-    public void Initialize()
+    public void ApplyMode()
     {
-      _Client.SetMode(_DeviceId, _StaticModeId);
+      _Client.SaveMode(_DeviceId, _DirectModeId);
     }
 
     public void SetColor(Color color)
     {
-      var nextColors = Enumerable.Range(0, _LedsCount).Select(e => color).ToArray();
+      CheckAndCorrectMode();
+
+      var nextColors = Enumerable.Repeat(color, _LedsCount).ToArray();
 
       _Client.UpdateLeds(_DeviceId, nextColors);
     }
 
-    public void Shutdown()
+    private void CheckAndCorrectMode()
     {
-      _Client.SetMode(_DeviceId, _RainbowModeId);
+      var now_utc = DateTime.UtcNow;
+
+      if ((now_utc - _LastModeCheck_Utc) > TimeSpan.FromSeconds(10))
+      {
+        _LastModeCheck_Utc = now_utc;
+
+        var device = _Client.GetControllerData(_DeviceId);
+
+        if (device.ActiveModeIndex != _DirectModeId)
+        {
+          ApplyMode();
+        }
+      }
     }
   }
 }

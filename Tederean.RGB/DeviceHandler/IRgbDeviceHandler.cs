@@ -1,4 +1,4 @@
-﻿using OpenRGB.NET.Models;
+﻿using OpenRGB.NET;
 
 namespace Tederean.RGB.DeviceHandler
 {
@@ -6,10 +6,8 @@ namespace Tederean.RGB.DeviceHandler
   public interface IRgbDeviceHandler
   {
 
-    void Initialize();
+    void ApplyMode();
 
     void SetColor(Color color);
-
-    void Shutdown();
   }
 }

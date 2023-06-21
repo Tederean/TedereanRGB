@@ -1,5 +1,6 @@
 ﻿using CoordinateSharp;
-using OpenRGB.NET.Models;
+using OpenRGB.NET;
+using OpenRGB.NET.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +22,7 @@ namespace Tederean.RGB.RgbProgram
 
     private const double Logitude = 6.17;
 
-    private readonly int DelayTime_ms;
+    private readonly TimeSpan DelayTime;
 
     private readonly int ColorCount;
 
@@ -35,10 +36,10 @@ namespace Tederean.RGB.RgbProgram
 
     public SpectrumShiftProgram()
     {
-      DelayTime_ms = (int)Math.Round(1000.0 / FramesPerSecond);
+      DelayTime = TimeSpan.FromMilliseconds(1000.0 / FramesPerSecond);
       ColorCount = (int)Math.Round(PeriodDuration_ms / (1000.0 / FramesPerSecond));
 
-      RainbowColors = Color.GetHueRainbow(ColorCount).ToArray();
+      RainbowColors = ColorUtils.GetHueRainbow(ColorCount).ToArray();
     }
 
 
@@ -46,7 +47,7 @@ namespace Tederean.RGB.RgbProgram
     {
       while (!cancellationToken.IsCancellationRequested)
       {
-        await using (new FixedTime(TimeSpan.FromMilliseconds(DelayTime_ms)))
+        await using (new FixedTime(DelayTime, cancellationToken))
         {
           var nextRainbowColor = NextRainbowColor();
           var nextLedColor = ApplyBrightnessCorrection(nextRainbowColor);
@@ -76,7 +77,7 @@ namespace Tederean.RGB.RgbProgram
 
       value *= brightnessRatio;
 
-      return Color.FromHsv(hue, saturation, value);
+      return ColorUtils.FromHsv(hue, saturation, value);
     }
 
     private Color NextRainbowColor()
